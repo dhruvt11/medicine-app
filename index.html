@@ -195,12 +195,19 @@
                 imagePreviewContainer.classList.add('hidden'); 
                 return;
             }
+            
+            
+            const MAX_FILE_SIZE = 4 * 1024 * 1024; 
+            if (file.size > MAX_FILE_SIZE) {
+                showError("Image file is too large. Please upload an image smaller than 4MB.");
+                imageUpload.value = ""; 
+                return;
+            }
 
             const reader = new FileReader();
 
             reader.onload = (e) => {
                 try {
-                    
                     if (typeof e.target.result !== 'string') {
                         throw new Error("File could not be read properly.");
                     }
