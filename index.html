@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1.0">
+        <title>Medicine info finder</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/showdown/2.1.0/showdown.min.js"></script>
+        <style>
+            @keyframes spin{
+                to{transform: rotate(360deg);}
+            }
+            .spinner {
+                border: 4px solid rgba(0,0,0,0.1);
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border-left-color: #059669;
+                animation: spin 1s ease infinite;
+            }
+            .tab-btn.active{
+                border-color: #059669;
+                color: #059669;
+                background-color: #ecfdf5;
+            }
+        </style>
+    </head>
+<body class="bg-gray-100 font-sans">
+        <div class="container mx-auto p-4 md:p-8 max-w-3xl">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div class="p-6 md:p-8">
+                <!-- Header Section -->
+                <div class="text-center mb-8">
+                    <h1 class="text-3xl md:text-4xl font-bold text-gray-800">Medicine Information Finder</h1>
+                    <p class="text-gray-500 mt-2">Get info by name or by photo.</p>
+                </div>
+
+                <!-- Tab Navigation -->
+                <div class="flex border-b border-gray-200 mb-6">
+                    <button id="name-tab-btn" class="tab-btn flex-1 py-3 px-4 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:bg-gray-50 focus:outline-none active">Search by Name</button>
+                    <button id="image-tab-btn" class="tab-btn flex-1 py-3 px-4 text-sm font-medium text-gray-600 border-b-2 border-transparent hover:bg-gray-50 focus:outline-none">Search by Image</button>
+                </div>
+
+                <!-- Content Panes -->
+                <div id="panes">
+                    <!-- Search by Name Pane -->
+                    <div id="name-pane" class="space-y-6">
+                        <div>
+                            <label for="medicine-name" class="block text-sm font-medium text-gray-700 mb-1">Medicine Name</label>
+                            <input type="text" id="medicine-name" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition" placeholder="e.g., Paracetamol, Ibuprofen">
+                        </div>
+                        <div>
+                            <button id="search-name-btn" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-transform transform hover:scale-105">
+                                Get Info
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Search by Image Pane -->
+                    <div id="image-pane" class="hidden space-y-6">
+                        <div>
+                            <label for="image-upload" class="block text-sm font-medium text-gray-700 mb-2">Upload an image of the medicine</label>
+                            <input type="file" id="image-upload" accept="image/png, image/jpeg" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"/>
+                        </div>
+                        <div id="image-preview-container" class="hidden text-center">
+                            <img id="image-preview" src="#" alt="Image Preview" class="max-w-full max-h-64 mx-auto rounded-lg shadow-md"/>
+                        </div>
+                        <div>
+                            <button id="search-image-btn" class="w-full bg-emerald-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                Get Info from Image
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading, Results, and Disclaimer Section -->
+            <div class="p-6 md:p-8 bg-gray-50 min-h-[200px]">
+                <div id="loading-indicator" class="text-center hidden">
+                     <div class="spinner mx-auto"></div>
+                     <p class="text-gray-600 mt-2">Checking medical sources... Please wait.</p>
+                </div>
+                <div id="error-message" class="hidden p-4 bg-red-100 text-red-700 border border-red-300 rounded-lg"></div>
+                <div id="results-container" class="prose max-w-none prose-h2:font-bold prose-h2:text-2xl prose-h2:mb-3 prose-ul:list-disc prose-ul:pl-5 prose-p:mb-4">
+                    <!-- The information will be displayed here -->
+                </div>
+                <!-- CRITICAL DISCLAIMER -->
+                <div id="disclaimer" class="hidden mt-6 p-4 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800">
+                    <p class="font-bold">Important Disclaimer</p>
+                    <p class="text-sm">The information provided by this tool is for general informational purposes only and is generated by an AI. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</p>
+                </div>
+            </div>
+        </div>
+        <footer class="text-right mt-6 text-sm text-gray-500">
+            <p>Powered by the Gemini API</p>
+        </footer>
+    </div>
+    <script>
+        const nameTAbBtn = document.getElementById('name-tab-btn');
+        const imageTabBtn = document.getElementById('image-tab-btn');
+        const namePane = document.getElementById('name-pane');
+        const imagePane = document.getElementById('image-pane');
+
+        const searchNameBtn = document.getElementById('search-name-btn');
+        const searchImageBtn = document.getElementById('search-image-btn');
+        const nameInput = document.getElementById('medicine-name');
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewController = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const resultsContainer = document.getElementById('results-container');
+        const errorMessage = document.getElementById('error-message');
+        const disclaimer = document.getElementById('disclaimer');
+
+        const markdownConverter = new showdown.Converter();
+        let imageBase64Data = null;
+
+        nameTAbBtn.addEventListener('click',()=> switchTab('name'));
+        imageTabBtn.addEventListener('click',()=> switchTab('image'));
+
+        function switchTab(tab){
+            clearState();
+            if(tab==='name'){
+                namePane.classList.remove('hidden');
+                imagePane.classList.add('hidden');
+                nameTAbBtn.classList.add('active');
+                imageTabBtn.classList.remove('active');
+            } else{
+                imagePane.classList.remove('hidden');
+                namePane.classList.add('hidden');
+                imageTabBtn.classList.add('active');
+                nameTAbBtn.classList.remove('active');
+            }
+        }
+
+        searchNameBtn.addEventListener('click', handleNameSearch);
+        searchImageBtn.addEventListener('click', handleImageSearch);
+        imageUpload.addEventListener('change', handleImageUpload);
+
+        async function handleNameSearch() {
+            const medicineName = nameInput.value.trim();
+            if(!medicineName){
+                showError("please enter a medicine name;}");
+                return;
+            }
+            startLoading(searchNameBtn);
+            try{
+                const prompt = 
+                `Provide information about the medicine "${medicineName}".in around a 100 words.
+                 Give the output in hindi language first and then in english. 
+                 sturcture the output in 2 sections: uses and common dosage. 
+                 usage sections shows what the medicine is generally used for and common dosgae shows the typical dosages for that medicine.
+                 start the response directly with  markdown. do not add any introduction`;
+                const geminiResponse = await callGEmini(prompt);
+                displayResults(geminiResponse);
+            } catch(error){
+                handleError(error);
+            } finally{
+                stopLoading(searchNameBtn);
+            }
+        }
+
+        async function handleImageSearch() {
+            if (!imageBase64Data){
+                showError("upload an image first");
+                return;
+            }
+            startLoading(searchImageBtn);
+            try{
+                const prompt=`identify the medicine in this image and provide info about it. 
+                sturcture the message in 3 parts. tell the medicine name, its common uses and the common dosage that is advised. 
+                give the answer in hindi first and then in english. in about 100 words`;
+                const geminiResponse = await callGEmini(prompt,imageBase64Data);
+                displayResults(geminiResponse);
+            }
+            catch(error){
+                handleError(error);
+            }
+            finally{
+                stopLoading(searchImageBtn);
+            }
+            
+        }
+        function handleImageUpload(event){
+            const file = event.target.files[0];
+            if(!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) =>  {
+                imageBase64Data = e.target.result.split(',')[1];
+                imagePreview.src = e.target.result;
+                imagePreviewContainer.classList.remove('hidden');
+                searchImageBtn.disabled = false;
+            };
+            reader.readAsDataURL(file);
+        }
+        async function callGemini(prompt, base64Data = null) {
+            // The API endpoint is now our own serverless function
+            const functionUrl = `/.netlify/functions/get-med-info`;
+
+            const payload = { prompt, base64Data };
+
+            let response;
+            try {
+                response = await fetch(functionUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            } catch (error) {
+                if (error instanceof TypeError && error.message === 'Failed to fetch') {
+                    throw new Error('Network error: Could not connect to the API. Please check your internet connection and try again.');
+                }
+                throw error;
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API request failed: ${errorData.error || response.statusText}`);
+            }
+
+            const result = await response.json();
+             if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                throw new Error("The API returned an empty or blocked response. The query may be against safety policies.");
+            }
+        }
+
+        function clearState() {
+            hideError();
+            resultsContainer.innerHTML= '';
+            disclaimer.classList.add('hidden');
+            
+        }
+
+        function startLoading(button){
+            clearState();
+            loadingIndicator.classList.remove('hidden');
+            button.disabled = true;
+            button.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        function stopLoading(button){
+            loadingIndicator.classList.add('hidden');
+            if(button){
+                button.disabled = false;
+                button.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+
+        function displayResults(markdownText) {
+             const htmlOutput = markdownConverter.makeHtml(markdownText);
+             resultsContainer.innerHTML = htmlOutput;
+             disclaimer.classList.remove('hidden'); // Show the disclaimer with any successful result
+        }
+
+        function handleError(error) {
+            console.error("An error occurred:", error);
+            showError(error.message);
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
