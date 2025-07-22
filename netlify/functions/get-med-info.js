@@ -1,3 +1,6 @@
+// File: netlify/functions/get-medicine-info.js
+const fetch = require('node-fetch'); // Import the fetch library
+
 exports.handler = async function (event, context) {
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
