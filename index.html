@@ -182,21 +182,49 @@
             }
             
         }
-        function handleImageUpload(event){
+
+        function handleImageUpload(event) {
             const file = event.target.files[0];
-            if(!file) return;
+
+            
+            searchImageBtn.disabled = true;
+            imageBase64Data = null;
+            clearState();
+
+            if (!file) {
+                imagePreviewContainer.classList.add('hidden'); 
+                return;
+            }
 
             const reader = new FileReader();
-            reader.onload = (e) =>  {
-                imageBase64Data = e.target.result.split(',')[1];
-                imagePreview.src = e.target.result;
-                imagePreviewContainer.classList.remove('hidden');
-                searchImageBtn.disabled = false;
+
+            reader.onload = (e) => {
+                try {
+                    
+                    if (typeof e.target.result !== 'string') {
+                        throw new Error("File could not be read properly.");
+                    }
+                    imageBase64Data = e.target.result.split(',')[1];
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    searchImageBtn.disabled = false; 
+                } catch (error) {
+                    console.error("Error reading file:", error);
+                    showError("Could not read the selected image. Please try another file.");
+                    imagePreviewContainer.classList.add('hidden');
+                }
             };
+            
+            reader.onerror = () => {
+                console.error("FileReader error.");
+                showError("An error occurred while trying to read the image file.");
+                imagePreviewContainer.classList.add('hidden');
+            };
+
             reader.readAsDataURL(file);
         }
         async function callGEmini(prompt, base64Data = null) {
-            // The API endpoint is now our own serverless function
+           
             const functionUrl = `/.netlify/functions/get-med-info`;
 
             const payload = { prompt, base64Data };
